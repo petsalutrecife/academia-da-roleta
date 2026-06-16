@@ -1,0 +1,333 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Brand Palette */
+  --color-navy-primary: #071A44;
+  --color-blue-deep: #0A2863;
+  --color-blue-highlight: #123D84;
+  --color-bg-dark: #030D24;
+  --color-white: #FFFFFF;
+  --color-silver-light: #D7DAE2;
+  --color-silver-medium: #B6BBC6;
+  --color-silver-dark: #9CA3AF;
+  
+  /* Feedback Palette */
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+  
+  /* Fonts */
+  --font-title: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  /* Shadows and Effects */
+  --border-silver: 1px solid rgba(182, 187, 198, 0.2);
+  --border-silver-active: 1px solid rgba(215, 218, 226, 0.45);
+  --metallic-gradient: linear-gradient(135deg, #9CA3AF 0%, #D7DAE2 50%, #B6BBC6 100%);
+  --metallic-bg-gradient: linear-gradient(135deg, rgba(7, 26, 68, 0.95) 0%, rgba(10, 40, 99, 0.95) 100%);
+  --dark-glass-gradient: linear-gradient(135deg, rgba(7, 26, 68, 0.7) 0%, rgba(3, 13, 36, 0.8) 100%);
+  --glow-highlight: 0 0 15px rgba(18, 61, 132, 0.4);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-silver-light);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  color: var(--color-white);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseBorder {
+  0% { border-color: rgba(182, 187, 198, 0.2); }
+  50% { border-color: rgba(18, 61, 132, 0.6); }
+  100% { border-color: rgba(18, 187, 198, 0.2); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-blue-deep);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-blue-highlight);
+}
+
+/* Utility Classes */
+.text-gradient-metallic {
+  background: var(--metallic-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-metallic {
+  border: var(--border-silver);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+
+.card-glass {
+  background: var(--dark-glass-gradient);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: var(--border-silver);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-glass:hover {
+  border: var(--border-silver-active);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), var(--glow-highlight);
+}
+
+/* Print Utilities and PDF Styles */
+.no-print {
+  display: revert;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+    font-size: 12pt !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+
+  p, span, td, th, strong {
+    color: #374151 !important;
+  }
+
+  /* Hide navigation, buttons, and dev helpers */
+  .no-print,
+  button,
+  a[href],
+  header,
+  footer,
+  [style*="position: fixed"],
+  div[style*="position: fixed"] {
+    display: none !important;
+  }
+
+  /* Force light backgrounds for containers on print */
+  .card-glass,
+  div[style*="background-color: rgba"],
+  div[style*="background: var"] {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    page-break-inside: avoid;
+    border-radius: 8px !important;
+  }
+
+  /* Keep table borders visible and readable */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1f2937 !important;
+    padding: 8px !important;
+  }
+
+  tr {
+    background: transparent !important;
+  }
+
+  .text-gradient-metallic {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+  }
+}
+
+/* Animated Logo Keyframes and Responsiveness */
+@keyframes rouletteSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Default Logo Sizing (Desktop/Tablet/Mobile Responsive breakpoints) */
+.animated-logo-container {
+  width: 230px; /* Desktop width range: 210px - 240px */
+}
+
+@media (max-width: 1024px) {
+  .animated-logo-container {
+    width: 180px; /* Tablet width range: 165px - 190px */
+  }
+}
+
+@media (max-width: 768px) {
+  .animated-logo-container {
+    width: 140px; /* Mobile width range: 125px - 150px */
+  }
+}
+
+/* Accessibility: Support prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animated-logo-wheel {
+    animation-duration: 45s !important; /* Extremely slow or stop */
+    animation-iteration-count: 1 !important; /* Stop rotating */
+    animation: none !important;
+  }
+
+  .intro-logo-container {
+    transform: scale(1) !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .splash-screen-fadeout {
+    animation: none !important;
+    opacity: 0 !important;
+    transition: none !important;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HEADER LOGO CROP
+   Canvas: 3375 × 4219 px | Content bbox: y=1451→2486 (34.39% – 58.92%)
+   Each breakpoint: translateY = -(rendered_height × 0.3439) to start at artwork
+   ───────────────────────────────────────────────────────────────────────────── */
+.quiz-header-logo-wrapper {
+  margin: 0 0 0 24px;
+  height: 80px;         /* artwork 61px + 8px top + 11px bottom breathing room */
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+.quiz-header-logo-wrapper .animated-logo-container {
+  width: 200px !important;
+  /* 250px tall render; artwork at y=86→147; shift -78px = 8px top breathing room */
+  transform: translateY(-78px);
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .quiz-header-logo-wrapper {
+    margin-left: 16px;
+    height: 68px; /* artwork 51px + 8px top + 9px bottom */
+  }
+  .quiz-header-logo-wrapper .animated-logo-container {
+    width: 165px !important;
+    /* 206px tall render; artwork at y=71→122; shift -63px = 8px top breathing room */
+    transform: translateY(-63px);
+  }
+  .quiz-header-nav {
+    margin-right: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .quiz-header-logo-wrapper {
+    margin-left: 12px;
+    height: 56px; /* artwork 40px + 8px top + 8px bottom */
+  }
+  .quiz-header-logo-wrapper .animated-logo-container {
+    width: 130px !important;
+    /* 163px tall render; artwork at y=56→96; shift -48px = 8px top breathing room */
+    transform: translateY(-48px);
+  }
+  .quiz-header-nav {
+    margin-right: 12px !important;
+  }
+}
+
+
+
+/* ─── Animações da Roleta (Etapa 4) ─────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Acessibilidade: reduz animações quando o sistema requisitar */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes spinSlow {
+    /* Sem rotação — botão mantém ícone estático */
+    from { transform: none; }
+    to   { transform: none; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}
