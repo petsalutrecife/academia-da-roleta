@@ -89,6 +89,7 @@ export const RouletteStage: React.FC<RouletteStageProps> = ({
   const [spinResult, setSpinResult] = useState<SpinResult | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(loadAudioPref);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioManager = AudioManager.getInstance();
   const hasRestoredRef = useRef(false);
 
   // ── Restaurar giro salvo após refresh ──────────────────────────────────────
@@ -151,11 +152,10 @@ export const RouletteStage: React.FC<RouletteStageProps> = ({
 
   // ── Toggle de áudio ───────────────────────────────────────────────────────
   const handleAudioToggle = useCallback(() => {
-    setAudioEnabled((prev) => {
-      const next = !prev;
-      saveAudioPref(next);
-      return next;
-    });
+    audioManager.toggle();
+    const next = audioManager.isEnabled();
+    setAudioEnabled(next);
+    saveAudioPref(next);
   }, []);
 
   // ── Cálculo da posição da bola ────────────────────────────────────────────

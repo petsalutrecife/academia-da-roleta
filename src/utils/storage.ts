@@ -12,7 +12,9 @@ export function saveAttempt(attempt: AttemptResult): void {
     // replace if same attemptId exists
     const filtered = attempts.filter((a) => a.attemptId !== attempt.attemptId);
     filtered.push(attempt);
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(filtered));
+    // keep only the last 10 attempts
+    const limited = filtered.slice(-10);
+    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(limited));
   } catch (e) {
     console.error('Error saving attempt', e);
   }
