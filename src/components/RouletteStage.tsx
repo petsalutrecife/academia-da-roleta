@@ -14,6 +14,7 @@
  */
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
+import { AudioManager } from '../audio/AudioManager';
 import {
   WHEEL_SVG,
   pickRandomNumber,
