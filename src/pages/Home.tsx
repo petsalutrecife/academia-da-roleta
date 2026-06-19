@@ -5,7 +5,7 @@ import { ContentCard } from '../components/ContentCard';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { Modal } from '../components/Modal';
 import { hasInProgressAttempt, clearAttempt } from '../data/quizSession';
-import { ShieldAlert, BarChart3, Target, HelpCircle, Clock, Award, AlertTriangle, PlayCircle, RotateCcw } from 'lucide-react';
+import { ShieldAlert, BarChart3, Target, PlayCircle, RotateCcw } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -287,36 +287,6 @@ export const Home: React.FC = () => {
 
         {/* Diagnostic Meta Info & Button */}
         <div style={{ width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-          {/* Metadata bullet cards list */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '0.75rem',
-              width: '100%',
-              fontSize: '0.8rem',
-              color: 'var(--color-silver-medium)',
-              marginBottom: '0.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(7, 26, 68, 0.4)', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(182, 187, 198, 0.1)' }}>
-              <HelpCircle size={14} color="var(--color-blue-highlight)" />
-              <span>5 perguntas</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(7, 26, 68, 0.4)', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(182, 187, 198, 0.1)' }}>
-              <Clock size={14} color="var(--color-blue-highlight)" />
-              <span>~3 minutos</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(7, 26, 68, 0.4)', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(182, 187, 198, 0.1)' }}>
-              <Award size={14} color="var(--color-blue-highlight)" />
-              <span>Resultado personalizado</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(7, 26, 68, 0.4)', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(182, 187, 198, 0.1)' }}>
-              <AlertTriangle size={14} color="var(--color-blue-highlight)" />
-              <span>Maiores de 18 anos</span>
-            </div>
-          </div>
-
           <Button
             variant="metallic"
             fullWidth
