@@ -130,7 +130,7 @@ export const EvolutionPlan: React.FC<EvolutionPlanProps> = ({ steps }) => {
                       color: 'var(--color-white)',
                     }}
                   >
-                    Etapa {idx + 1}: {step.title}
+                    {step.title}
                   </h4>
                   <span
                     style={{

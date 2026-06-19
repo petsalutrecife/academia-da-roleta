@@ -157,19 +157,19 @@ export const Result: React.FC = () => {
 
   const evolutionSteps = [
     {
-      title: 'Revisar',
+      title: 'Estuda.',
       description: incorrectPillars.length > 0 
-        ? `Revise as questões incorretas nos pilares: ${incorrectPillars.join(', ')}.`
+        ? `Estude as questões incorretas nos pilares: ${incorrectPillars.join(', ')}.`
         : 'Excelente! Reforce os fundamentos gerais e continue estudando.',
       priority: maxPercent === 100 ? 'APROFUNDAMENTO' : maxPercent === 0 ? 'ALTA' : 'MÉDIA',
     },
     {
-      title: 'Aprofundar',
-      description: `Aprofunde o pilar com menor desempenho (${attentionPillars.map(p => p.name).join(' e ')}) e integre-o ao seu plano de estudos diário.`,
+      title: 'Analisa.',
+      description: `Analise o pilar com menos desempenho (${attentionPillars.map(p => p.name).join(' e ')}) e integre-o ao seu plano de estudos diário.`,
       priority: minPercent === 0 ? 'ALTA' : minPercent < 50 ? 'MÉDIA' : 'APROFUNDAMENTO',
     },
     {
-      title: 'Aplicar',
+      title: 'Executa.',
       description: 'Pratique os conceitos estudados em simulações controladas mantendo o gerenciamento de risco rígido.',
       priority: 'APROFUNDAMENTO',
     },
