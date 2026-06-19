@@ -1,28 +1,21 @@
 /**
- * Quiz.tsx — Etapa 4
- * Página principal do diagnóstico com máquina de 3 estados por rodada:
- *   waiting → open → confirmed → (próxima rodada ou finalização)
+ * Quiz.tsx
+ * Página principal do diagnóstico com fluxo modular de 3 módulos e 30 perguntas.
  *
- * A Etapa 4 integra a roleta real (RouletteStage) que gerencia internamente
- * o ciclo idle → spinning → settling → result → question_unlocked.
- *
- * O Quiz.tsx é responsável por:
- *  - Proteção de rota
- *  - Salvamento no localStorage
- *  - Coleta e confirmação de respostas
- *  - Navegação entre rodadas
+ * Fluxo de estados:
+ *   - waiting (intro do módulo com giro da roleta) -> open (pergunta exibida) -> confirmed (feedback imediato)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CheckCircle } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 import { RouletteStage } from '../components/RouletteStage';
 import { QuizProgress } from '../components/QuizProgress';
 import { QuestionCard } from '../components/QuestionCard';
 import { Modal } from '../components/Modal';
 
-import { quizQuestions } from '../data/quizData';
+import { quizQuestions, quizModules } from '../data/quizData';
 import type { OptionId } from '../data/quizData';
 import type { SpinResult } from '../data/rouletteData';
 import {
@@ -31,28 +24,33 @@ import {
   createNewAttempt,
   isEligibleForQuiz,
   getStudentInfo,
+  isIncompatibleAttempt,
+  clearAttempt,
   type QuizAttempt,
   type QuizAnswer,
-  type RoundSpinData,
+  type ModuleSpinData,
 } from '../data/quizSession';
 
-// ─── Tipos locais ─────────────────────────────────────────────────────────────
-/** Etapa 4: estado 'spinning' é gerenciado internamente pela RouletteStage */
 type RoundState = 'waiting' | 'open' | 'confirmed';
 
-// ─── Componente ───────────────────────────────────────────────────────────────
 export const Quiz: React.FC = () => {
   const navigate = useNavigate();
 
-  // ── Estado local ──
+  // ── Estados locais ──
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [roundState, setRoundState] = useState<RoundState>('waiting');
   const [selectedOption, setSelectedOption] = useState<OptionId | null>(null);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [isIncompatible, setIsIncompatible] = useState(false);
 
   const totalQuestions = quizQuestions.length;
   const currentQuestion = quizQuestions[currentIndex];
+  
+  // Mapeamentos de módulo atual
+  const currentModuleIndex = Math.floor(currentIndex / 10);
+  const currentModule = quizModules[currentModuleIndex];
+  
   const studentInfo = getStudentInfo();
   const firstName = studentInfo?.name?.split(' ')[0] ?? 'Aluno';
 
@@ -63,33 +61,40 @@ export const Quiz: React.FC = () => {
       return;
     }
 
+    if (isIncompatibleAttempt()) {
+      setIsIncompatible(true);
+      return;
+    }
+
     const existing = loadAttempt();
 
     if (existing && existing.status === 'in_progress') {
-      // Retomar tentativa salva
       setAttempt(existing);
       setCurrentIndex(existing.currentQuestionIndex);
 
-      // Verificar se a rodada atual já foi girada (giro salvo)
-      const currentRound = existing.currentQuestionIndex + 1;
-      const savedSpin = (existing.roundSpins || []).find((s) => s.round === currentRound);
+      const qIndex = existing.currentQuestionIndex;
+      const q = quizQuestions[qIndex];
+      
+      // Verificar se o módulo da pergunta atual já foi girado
+      const isSpun = (existing.moduleSpins || []).some((s) => s.moduleId === q.moduleId);
 
-      if (existing.roundState === 'confirmed') {
-        const savedAnswer = existing.answers.find(
-          (a) => a.questionId === quizQuestions[existing.currentQuestionIndex].id,
-        );
-        setSelectedOption(savedAnswer?.selectedOption ?? null);
-        setRoundState('confirmed');
-      } else if (savedSpin?.questionUnlocked) {
-        // Giro já aconteceu mas resposta não confirmada → retomar em 'open'
-        setRoundState('open');
-        setSelectedOption(null);
-      } else {
+      if (!isSpun) {
         setRoundState('waiting');
         setSelectedOption(null);
+      } else {
+        // Módulo já foi girado. Verificar se a pergunta já foi confirmada
+        const isAnswered = (existing.answers || []).some((a) => a.questionId === q.id);
+        if (isAnswered) {
+          const savedAnswer = existing.answers.find((a) => a.questionId === q.id);
+          setSelectedOption(savedAnswer?.selectedOption ?? null);
+          setRoundState('confirmed');
+        } else {
+          setRoundState('open');
+          setSelectedOption(null);
+        }
       }
     } else {
-      // Nova tentativa
+      // Nova tentativa modularizada
       const newAttempt = createNewAttempt();
       saveAttempt(newAttempt);
       setAttempt(newAttempt);
@@ -97,7 +102,7 @@ export const Quiz: React.FC = () => {
       setRoundState('waiting');
       setSelectedOption(null);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   // ── Helpers de persistência ───────────────────────────────────────────────────
   const persistAttempt = useCallback(
@@ -115,33 +120,37 @@ export const Quiz: React.FC = () => {
   // ── Handlers de fluxo ─────────────────────────────────────────────────────────
 
   /**
-   * Chamado pela RouletteStage quando a animação de giro termina.
-   * Persiste o resultado do giro e libera a pergunta.
+   * Chamado pela RouletteStage quando a animação de giro da roleta do módulo termina.
+   * Persiste o resultado do giro e destrava as perguntas do módulo.
    */
   const handleSpinComplete = useCallback(
     (result: SpinResult) => {
       if (!attempt) return;
 
-      const newSpin: RoundSpinData = {
-        round: currentIndex + 1,
+      const newSpin: ModuleSpinData = {
+        moduleId: currentModule.id,
         rouletteNumber: result.number,
         rouletteColor: result.color,
         finalWheelAngle: result.finalWheelAngle,
         spunAt: result.spunAt,
+        unlocked: true,
         questionUnlocked: true,
         answerConfirmed: false,
       };
 
-      const existingSpins = attempt.roundSpins ?? [];
+      const existingSpins = attempt.moduleSpins ?? [];
       const updatedSpins = [
-        ...existingSpins.filter((s) => s.round !== newSpin.round),
+        ...existingSpins.filter((s) => s.moduleId !== newSpin.moduleId),
         newSpin,
       ];
 
-      persistAttempt({ roundState: 'open', roundSpins: updatedSpins });
+      persistAttempt({
+        roundState: 'open',
+        moduleSpins: updatedSpins,
+      });
       setRoundState('open');
     },
-    [attempt, currentIndex, persistAttempt],
+    [attempt, currentModule.id, persistAttempt],
   );
 
   /** Selecionar alternativa */
@@ -157,10 +166,17 @@ export const Quiz: React.FC = () => {
   const handleConfirm = useCallback(() => {
     if (!selectedOption || roundState !== 'open' || !attempt) return;
 
+    const currentSpin = attempt.moduleSpins.find((s) => s.moduleId === currentQuestion.moduleId);
+    const isCorrect = selectedOption === currentQuestion.correctAnswer;
+
     const newAnswer: QuizAnswer = {
       questionId: currentQuestion.id,
       selectedOption,
       answeredAt: new Date().toISOString(),
+      rouletteNumber: currentSpin ? currentSpin.rouletteNumber : 0,
+      rouletteColor: currentSpin ? currentSpin.rouletteColor : 'green',
+      pillar: currentQuestion.pillar,
+      isCorrect,
     };
 
     const updatedAnswers = [
@@ -168,21 +184,13 @@ export const Quiz: React.FC = () => {
       newAnswer,
     ];
 
-    // Atualiza também o roundSpin marcando answerConfirmed
-    const currentRound = currentIndex + 1;
-    const existingSpins = attempt.roundSpins ?? [];
-    const updatedSpins = existingSpins.map((s) =>
-      s.round === currentRound ? { ...s, answerConfirmed: true } : s,
-    );
-
     persistAttempt({
       answers: updatedAnswers,
       roundState: 'confirmed',
-      roundSpins: updatedSpins,
     });
 
     setRoundState('confirmed');
-  }, [selectedOption, roundState, attempt, currentQuestion.id, currentIndex, persistAttempt]);
+  }, [selectedOption, roundState, attempt, currentQuestion, persistAttempt]);
 
   /** Avançar para próxima rodada ou finalizar */
   const handleNextRound = useCallback(() => {
@@ -203,27 +211,84 @@ export const Quiz: React.FC = () => {
       setAttempt(completedAttempt);
       navigate('/processamento');
     } else {
+      const nextQuestion = quizQuestions[nextIndex];
+      const isNextModuleSpun = attempt.moduleSpins.some((s) => s.moduleId === nextQuestion.moduleId);
+      
+      const nextRoundState = isNextModuleSpun ? 'open' : 'waiting';
+
       persistAttempt({
         currentQuestionIndex: nextIndex,
-        roundState: 'waiting',
+        roundState: nextRoundState,
       });
+
       setCurrentIndex(nextIndex);
       setSelectedOption(null);
-      setRoundState('waiting');
+      setRoundState(nextRoundState);
     }
   }, [attempt, currentIndex, totalQuestions, persistAttempt, navigate]);
 
-  /** Sair e salvar (modal) */
+  /** Sair e salvar */
   const handleExitAndSave = useCallback(() => {
     setShowExitModal(false);
     navigate('/');
   }, [navigate]);
 
-  // ── Dados do giro salvo para a rodada atual ────────────────────────────────
-  const savedSpinData =
-    attempt
-      ? (attempt.roundSpins ?? []).find((s) => s.round === currentIndex + 1) ?? null
-      : null;
+  // ── Render de compatibilidade para sessões antigas ─────────────────────────
+  if (isIncompatible) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '1rem' }}>
+        <div className="card-glass" style={{ maxWidth: '500px', textAlign: 'center', padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.4rem', color: 'var(--color-white)', marginBottom: '1rem', fontFamily: 'var(--font-title)' }}>
+            Diagnóstico Desatualizado
+          </h2>
+          <p style={{ color: 'var(--color-silver-light)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.5rem', fontFamily: 'var(--font-body)' }}>
+            Identificamos que você possui um progresso de uma versão anterior do diagnóstico. 
+            Para ter acesso à nova estrutura de 30 perguntas em 3 módulos, é necessário reiniciar.
+          </p>
+          <button
+            onClick={() => {
+              clearAttempt();
+              setIsIncompatible(false);
+              const newAttempt = createNewAttempt();
+              saveAttempt(newAttempt);
+              setAttempt(newAttempt);
+              setCurrentIndex(0);
+              setRoundState('waiting');
+              setSelectedOption(null);
+            }}
+            style={{
+              fontFamily: 'var(--font-title)',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              padding: '0.85rem 2rem',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              border: '1px solid rgba(192,200,216,0.3)',
+              background: 'linear-gradient(135deg, var(--color-blue-highlight) 0%, #0f2f6e 100%)',
+              color: 'var(--color-white)',
+              boxShadow: '0 4px 16px rgba(18,61,132,0.4)',
+              width: '100%',
+              transition: 'all 0.25s ease',
+            }}
+          >
+            Iniciar novo diagnóstico atualizado
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!attempt) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <p style={{ color: 'var(--color-silver-medium)', fontFamily: 'var(--font-body)' }}>
+          Carregando diagnóstico...
+        </p>
+      </div>
+    );
+  }
 
   // ── Botão de ação principal ────────────────────────────────────────────────
   const isLastQuestion = currentIndex === totalQuestions - 1;
@@ -259,7 +324,6 @@ export const Quiz: React.FC = () => {
             gap: '0.5rem',
           }}
         >
-          <CheckCircle size={16} />
           Confirmar Resposta
         </button>
       );
@@ -292,16 +356,8 @@ export const Quiz: React.FC = () => {
             justifyContent: 'center',
             gap: '0.5rem',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,0,0,0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
-          }}
         >
-          {isLastQuestion ? '✓ Finalizar Diagnóstico' : 'Próxima Rodada →'}
+          {isLastQuestion ? '✓ Finalizar Diagnóstico' : 'Próxima Pergunta →'}
         </button>
       );
     }
@@ -309,16 +365,8 @@ export const Quiz: React.FC = () => {
     return null;
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
-  if (!attempt) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <p style={{ color: 'var(--color-silver-medium)', fontFamily: 'var(--font-body)' }}>
-          Carregando diagnóstico...
-        </p>
-      </div>
-    );
-  }
+  // Se o módulo atual não foi girado ainda, exibe a tela de abertura do módulo
+  const isModuleSpun = attempt.moduleSpins.some((s) => s.moduleId === currentModule.id);
 
   return (
     <div
@@ -376,14 +424,6 @@ export const Quiz: React.FC = () => {
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--color-silver-medium)';
-            e.currentTarget.style.borderColor = 'rgba(182,187,198,0.25)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--color-silver-dark)';
-            e.currentTarget.style.borderColor = 'rgba(182,187,198,0.1)';
-          }}
         >
           <LogOut size={13} />
           Sair
@@ -392,67 +432,118 @@ export const Quiz: React.FC = () => {
 
       {/* ── Indicador de progresso ── */}
       <QuizProgress
-        current={currentIndex + 1}
-        total={totalQuestions}
-        answeredCount={attempt.answers.length}
+        currentGlobal={currentIndex + 1}
+        totalGlobal={totalQuestions}
+        currentModuleIndex={currentModuleIndex}
+        currentModuleQuestion={(currentIndex % 10) + 1}
+        moduleTitle={currentModule.title}
       />
 
-      {/* ── Roleta europeia (Etapa 4) ── */}
-      <div style={{ width: '100%', marginBottom: '1.5rem' }}>
-        <RouletteStage
-          questionNumber={currentIndex + 1}
-          savedSpinData={savedSpinData}
-          isAnswerConfirmed={roundState === 'confirmed'}
-          onSpinComplete={handleSpinComplete}
-        />
-      </div>
-
-      {/* ── Aviso de resposta confirmada ── */}
-      {roundState === 'confirmed' && (
+      {/* ── Conteúdo Central (Introdução do Módulo ou Pergunta Ativa) ── */}
+      {!isModuleSpun ? (
+        /* Tela de Introdução do Módulo com a Roleta */
         <div
-          role="status"
-          aria-live="polite"
           style={{
             width: '100%',
-            textAlign: 'center',
-            padding: '0.6rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '8px',
-            background: 'rgba(18,61,132,0.15)',
-            border: '1px solid rgba(18,61,132,0.3)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.82rem',
-            color: 'var(--color-silver-light)',
-            animation: 'fadeIn 0.3s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem',
+            animation: 'fadeIn 0.5s ease forwards',
           }}
         >
-          ✓ Resposta registrada.
-        </div>
-      )}
+          <div
+            className="card-glass"
+            style={{
+              width: '100%',
+              padding: '1.8rem',
+              textAlign: 'center',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-title)',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                letterSpacing: '0.15em',
+                color: 'var(--color-silver-medium)',
+                textTransform: 'uppercase',
+                display: 'block',
+                marginBottom: '0.4rem',
+              }}
+            >
+              Módulo {currentModuleIndex + 1} de 3
+            </span>
+            <h1
+              style={{
+                fontSize: '1.8rem',
+                fontFamily: 'var(--font-title)',
+                fontWeight: 800,
+                marginBottom: '0.8rem',
+                color: 'var(--color-white)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {currentModule.title}
+            </h1>
+            <div
+              style={{
+                width: '40px',
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(182, 187, 198, 0.4), transparent)',
+                margin: '0 auto 1rem',
+              }}
+            />
+            <p
+              style={{
+                fontSize: '0.9rem',
+                color: 'var(--color-silver-light)',
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {currentModule.description}
+            </p>
+          </div>
 
-      {/* ── Card da pergunta (visível quando pergunta está aberta ou confirmada) ── */}
-      {(roundState === 'open' || roundState === 'confirmed') && (
-        <div style={{ width: '100%', marginBottom: '1.2rem' }}>
-          <QuestionCard
-            question={currentQuestion}
-            questionNumber={currentIndex + 1}
-            totalQuestions={totalQuestions}
-            selectedOption={selectedOption}
-            isLocked={roundState === 'confirmed'}
-            onSelectOption={handleSelectOption}
-          />
+          {/* Roleta */}
+          <div style={{ width: '100%' }}>
+            <RouletteStage
+              questionNumber={currentModuleIndex + 1}
+              savedSpinData={null}
+              isAnswerConfirmed={false}
+              onSpinComplete={handleSpinComplete}
+              buttonLabel="GIRAR ROLETA E INICIAR MÓDULO"
+            />
+          </div>
         </div>
-      )}
+      ) : (
+        /* Caso o módulo já esteja liberado, renderiza a Pergunta atômica */
+        <>
+          {/* Card da pergunta */}
+          <div style={{ width: '100%', marginBottom: '1.2rem' }}>
+            <QuestionCard
+              question={currentQuestion}
+              questionNumber={(currentIndex % 10) + 1}
+              totalQuestions={10}
+              selectedOption={selectedOption}
+              isLocked={roundState === 'confirmed'}
+              onSelectOption={handleSelectOption}
+            />
+          </div>
 
-      {/* ── Botão de ação principal ── */}
-      <div style={{ width: '100%', marginTop: '0.5rem' }}>
-        {renderActionButton()}
-      </div>
+          {/* Botão de ação */}
+          <div style={{ width: '100%', marginTop: '0.5rem' }}>
+            {renderActionButton()}
+          </div>
+        </>
+      )}
 
       {/* ── Aviso educacional ── */}
       <p
         style={{
-          marginTop: '2rem',
+          marginTop: '2.5rem',
           fontSize: '0.7rem',
           color: 'var(--color-silver-dark)',
           textAlign: 'center',
@@ -461,8 +552,7 @@ export const Quiz: React.FC = () => {
           lineHeight: 1.5,
         }}
       >
-        Este diagnóstico é um instrumento educacional. Não envolve apostas, valores financeiros
-        ou qualquer forma de jogo.
+        Este diagnóstico possui finalidade exclusivamente educacional. A roleta envolve risco, e nenhum método elimina a aleatoriedade ou garante resultados financeiros. Nunca utilize recursos destinados a despesas essenciais.
       </p>
 
       {/* ── Modal: Sair do diagnóstico ── */}
@@ -517,8 +607,7 @@ export const Quiz: React.FC = () => {
         }
       >
         <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--color-silver-light)' }}>
-          Seu progresso ficará salvo neste dispositivo e poderá ser retomado
-          posteriormente.
+          Seu progresso ficará salvo neste dispositivo e poderá ser retomado posteriormente.
         </p>
       </Modal>
     </div>

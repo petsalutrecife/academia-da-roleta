@@ -20,6 +20,7 @@ interface RouletteControlsProps {
   audioEnabled: boolean;
   onSpin: () => void;
   onAudioToggle: () => void;
+  buttonLabel?: string;
 }
 
 type ButtonConfig = {
@@ -28,10 +29,10 @@ type ButtonConfig = {
   loading: boolean;
 };
 
-function getButtonConfig(animState: RouletteAnimState): ButtonConfig {
+function getButtonConfig(animState: RouletteAnimState, customLabel?: string): ButtonConfig {
   switch (animState) {
     case 'idle':
-      return { label: 'GIRAR A ROLETA', disabled: false, loading: false };
+      return { label: customLabel || 'GIRAR A ROLETA', disabled: false, loading: false };
     case 'spinning':
     case 'settling':
       return { label: 'Roleta girando...', disabled: true, loading: true };
@@ -42,23 +43,23 @@ function getButtonConfig(animState: RouletteAnimState): ButtonConfig {
     case 'round_completed':
       return { label: 'Rodada concluída', disabled: true, loading: false };
     default:
-      return { label: 'GIRAR A ROLETA', disabled: false, loading: false };
+      return { label: customLabel || 'GIRAR A ROLETA', disabled: false, loading: false };
   }
 }
 
 function getStatusMessage(animState: RouletteAnimState): string {
   switch (animState) {
     case 'idle':
-      return 'Gire a roleta para liberar a próxima pergunta.';
+      return 'Gire a roleta para iniciar o módulo.';
     case 'spinning':
     case 'settling':
       return 'A roleta está girando...';
     case 'result':
-      return 'Número sorteado! Liberando a pergunta.';
+      return 'Número sorteado! Iniciando o módulo.';
     case 'question_unlocked':
-      return 'Pergunta liberada. Escolha uma alternativa.';
+      return 'Módulo liberado.';
     case 'round_completed':
-      return 'Resposta confirmada. Avance para a próxima rodada.';
+      return 'Módulo concluído.';
     default:
       return '';
   }
@@ -69,8 +70,9 @@ export const RouletteControls: React.FC<RouletteControlsProps> = ({
   audioEnabled,
   onSpin,
   onAudioToggle,
+  buttonLabel,
 }) => {
-  const { label, disabled, loading } = getButtonConfig(animState);
+  const { label, disabled, loading } = getButtonConfig(animState, buttonLabel);
   const isIdle = animState === 'idle';
 
   return (

@@ -1,33 +1,48 @@
 /**
  * quizSession.ts
  * Utilitários para salvar e recuperar o progresso do quiz no localStorage.
+ * Atualizado para fluxo modular de 30 perguntas em 3 módulos.
  */
 
 import type { OptionId } from './quizData';
 
 export interface QuizAnswer {
-  questionId: number;
+  questionId: string; // e.g. "ce-01"
   selectedOption: OptionId;
   answeredAt: string; // ISO 8601
+  rouletteNumber: number; // número sorteado na roleta na abertura do módulo correspondente
+  rouletteColor: string; // cor sorteada
+  pillar: string; // pilar correspondente
+  isCorrect: boolean; // se acertou
 }
 
-/** Dados de um giro da roleta por rodada */
-export interface RoundSpinData {
-  round: number;              // 1–5
+/** Dados de um giro da roleta por módulo */
+export interface ModuleSpinData {
+  moduleId: string;           // 'controle-emocional' | 'gestao-financeira' | 'estrategias'
   rouletteNumber: number;     // 0–36
   rouletteColor: 'green' | 'red' | 'black';
   finalWheelAngle: number;    // ângulo final da roda em graus (para restauração)
   spunAt: string;             // ISO 8601
-  questionUnlocked: boolean;  // se a pergunta foi liberada
-  answerConfirmed: boolean;   // se a resposta foi confirmada
+  unlocked: boolean;          // se o módulo foi liberado
+  questionUnlocked: boolean;  // alias de compatibilidade para RouletteStage
+  answerConfirmed: boolean;   // alias de compatibilidade para RouletteStage
 }
+
+export type RoundSpinData = ModuleSpinData;
 
 export interface QuizAttempt {
   attemptId: string;
-  currentQuestionIndex: number;
+  student?: {
+    name: string;
+    email: string;
+    phone: string;
+    consent: boolean;
+  };
+  currentModuleIndex: number;   // 0, 1 ou 2
+  currentQuestionIndex: number;  // index global 0 a 29
   roundState: 'waiting' | 'open' | 'confirmed';
   answers: QuizAnswer[];
-  roundSpins: RoundSpinData[];  // dados de cada giro da roleta
+  moduleSpins: ModuleSpinData[];  // giros por módulo (máximo 3)
   startedAt: string;       // ISO 8601
   completedAt: string | null;
   status: 'in_progress' | 'completed';
@@ -69,14 +84,28 @@ export function hasInProgressAttempt(): boolean {
   return attempt !== null && attempt.status === 'in_progress';
 }
 
+/** Verifica se a tentativa salva no localStorage é do formato antigo incompatível */
+export function isIncompatibleAttempt(): boolean {
+  const attempt = loadAttempt();
+  if (!attempt) return false;
+  // Se for in_progress mas não tiver moduleSpins ou currentModuleIndex, é incompatível
+  return (
+    attempt.status === 'in_progress' &&
+    (attempt.moduleSpins === undefined || attempt.currentModuleIndex === undefined)
+  );
+}
+
 // ─── Fábrica de nova tentativa ──────────────────────────────────────────────
 export function createNewAttempt(): QuizAttempt {
+  const studentInfo = getStudentInfo();
   return {
     attemptId: generateAttemptId(),
+    student: studentInfo || undefined,
+    currentModuleIndex: 0,
     currentQuestionIndex: 0,
     roundState: 'waiting',
     answers: [],
-    roundSpins: [],
+    moduleSpins: [],
     startedAt: new Date().toISOString(),
     completedAt: null,
     status: 'in_progress',

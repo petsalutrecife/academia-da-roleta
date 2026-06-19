@@ -48,3 +48,25 @@ export function clearCurrentProgress(): void {
     console.error('Error clearing progress', e);
   }
 }
+
+/** Load all attempts in historical order */
+export function loadAttempts(): AttemptResult[] {
+  try {
+    const data = localStorage.getItem(ATTEMPTS_KEY);
+    if (!data) return [];
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('Error loading all attempts', e);
+    return [];
+  }
+}
+
+/** Clear all stored attempts */
+export function clearAttempts(): void {
+  try {
+    localStorage.removeItem(ATTEMPTS_KEY);
+  } catch (e) {
+    console.error('Error clearing all attempts', e);
+  }
+}
+

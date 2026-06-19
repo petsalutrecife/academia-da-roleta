@@ -7,6 +7,8 @@ interface PillarPerformanceCardProps {
   percent: number; // 0-100
   correct: number;
   total: number;
+  levelName?: string;
+  levelEmoji?: string;
 }
 
 const iconMap: Record<PillarPerformanceCardProps['pillar'], React.ReactNode> = {
@@ -22,14 +24,28 @@ const statusMap = (p: number) => {
   return { status: 'BOM DOMÍNIO', color: 'var(--color-success)' };
 };
 
-export const PillarPerformanceCard: React.FC<PillarPerformanceCardProps> = ({ pillar, percent, correct, total }) => {
+export const PillarPerformanceCard: React.FC<PillarPerformanceCardProps> = ({
+  pillar,
+  percent,
+  correct,
+  total,
+  levelName,
+  levelEmoji,
+}) => {
   const { status, color } = statusMap(percent);
   return (
     <div style={{ border: '1px solid var(--color-silver-dark)', borderRadius: '12px', padding: '1rem', backgroundColor: 'rgba(3,13,36,0.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
         {iconMap[pillar]}
-        <div>
-          <h3 style={{ margin: 0, fontFamily: 'var(--font-title)', fontSize: '0.95rem' }}>{pillar}</h3>
+        <div style={{ flexGrow: 1 }}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--font-title)', fontSize: '0.95rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{pillar}</span>
+            {levelName && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'var(--font-body)', color: 'var(--color-silver-light)' }}>
+                {levelEmoji} {levelName}
+              </span>
+            )}
+          </h3>
           <span style={{ fontSize: '0.75rem', color: 'var(--color-silver-dark)' }}>{status}</span>
         </div>
       </div>

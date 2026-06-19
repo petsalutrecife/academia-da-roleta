@@ -1,22 +1,98 @@
 /**
- * Processing.tsx — Tela provisória de conclusão do diagnóstico (Etapa 3).
- * Não exibe pontuação, percentual ou classificação — apenas confirma o registro.
- * A análise de resultados será implementada na Etapa 4.
+ * Processing.tsx
+ * Processa as respostas do quiz, salva o resultado definitivo e exibe
+ * uma animação premium de carregamento antes de redirecionar para a tela de resultados.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
-import { clearAttempt } from '../data/quizSession';
+import { Target, ShieldAlert, BarChart3, Loader2 } from 'lucide-react';
+import { loadAttempt, clearAttempt } from '../data/quizSession';
+import { quizQuestions } from '../data/quizData';
+import { buildAttemptResult, type AnswerRecord } from '../utils/resultUtils';
+import { saveAttempt as saveHistoricalAttempt } from '../utils/storage';
+
+const STAGES = [
+  { message: 'Processando respostas...', icon: <Loader2 className="animate-spin" size={32} color="var(--color-silver-light)" /> },
+  { message: 'Analisando perfil de Controle Emocional...', icon: <ShieldAlert size={32} color="#4a90e2" /> },
+  { message: 'Calculando métricas de Gestão Financeira...', icon: <BarChart3 size={32} color="#7c9cd4" /> },
+  { message: 'Avaliando desempenho de Estratégias...', icon: <Target size={32} color="#a0b4e0" /> },
+  { message: 'Gerando relatório detalhado C.G.E...', icon: <Loader2 className="animate-spin" size={32} color="var(--color-success)" /> }
+];
 
 export const Processing: React.FC = () => {
   const navigate = useNavigate();
+  const [currentStage, setCurrentStage] = useState(0);
 
-  const handleGoHome = () => {
-    // Limpar a tentativa ao concluir — diagnóstico foi encerrado com sucesso
-    clearAttempt();
-    navigate('/');
-  };
+  useEffect(() => {
+    // 1. Carregar a tentativa atual ativa
+    const attempt = loadAttempt();
+    if (!attempt) {
+      console.error('[Processing] Nenhuma tentativa ativa encontrada.');
+      navigate('/');
+      return;
+    }
+
+    try {
+      // 2. Mapear respostas para o formato do histórico
+      const mappedAnswers: AnswerRecord[] = attempt.answers.map((ans) => {
+        const origQuestion = quizQuestions.find((q) => q.id === ans.questionId);
+        const isCorrect = ans.selectedOption === (origQuestion?.correctAnswer ?? '');
+        return {
+          questionId: ans.questionId,
+          selectedOption: ans.selectedOption,
+          answeredAt: ans.answeredAt,
+          rouletteNumber: ans.rouletteNumber,
+          rouletteColor: ans.rouletteColor,
+          isCorrect,
+          pillar: ans.pillar,
+        };
+      });
+
+      // 3. Gerar o resultado consolidado e salvar
+      const resultObj = buildAttemptResult({
+        attemptId: attempt.attemptId,
+        student: attempt.student || { name: 'Aluno', email: '', phone: '', consent: true },
+        startedAt: attempt.startedAt,
+        completedAt: new Date().toISOString(),
+        totalQuestions: quizQuestions.length,
+        answers: mappedAnswers,
+      });
+
+      // Salvar na lista de tentativas históricas
+      saveHistoricalAttempt(resultObj);
+      
+      // Salvar o ID selecionado para a página de resultado carregar
+      localStorage.setItem('selectedAttemptId', attempt.attemptId);
+    } catch (e) {
+      console.error('[Processing] Erro ao consolidar resultado:', e);
+    }
+
+    // 4. Fluxo de animação dos estágios (2.5s no total)
+    const interval = setInterval(() => {
+      setCurrentStage((prev) => {
+        if (prev < STAGES.length - 1) {
+          return prev + 1;
+        } else {
+          clearInterval(interval);
+          return prev;
+        }
+      });
+    }, 600);
+
+    const timeout = setTimeout(() => {
+      // Limpa progresso ativo e vai para o resultado
+      clearAttempt();
+      navigate('/resultado');
+    }, 3100);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [navigate]);
+
+  const stage = STAGES[currentStage];
 
   return (
     <div
@@ -33,11 +109,11 @@ export const Processing: React.FC = () => {
         animation: 'fadeIn 0.5s ease forwards',
       }}
     >
-      {/* Ícone de sucesso */}
+      {/* Icon Wrapper com pulso */}
       <div
         style={{
-          width: '80px',
-          height: '80px',
+          width: '90px',
+          height: '90px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(18,61,132,0.3) 0%, rgba(7,26,68,0.5) 100%)',
           border: '1px solid rgba(192,200,216,0.25)',
@@ -45,11 +121,11 @@ export const Processing: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '2rem',
-          boxShadow: '0 0 30px rgba(18,61,132,0.3)',
-          animation: 'fadeIn 0.6s ease 0.2s both',
+          boxShadow: '0 0 40px rgba(18,61,132,0.4)',
+          transition: 'all 0.3s ease',
         }}
       >
-        <CheckCircle size={40} color="rgba(192,200,216,0.8)" strokeWidth={1.5} />
+        {stage.icon}
       </div>
 
       {/* Card central */}
@@ -62,22 +138,21 @@ export const Processing: React.FC = () => {
           padding: '2.5rem 2rem',
           textAlign: 'center',
           boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-          animation: 'fadeIn 0.5s ease 0.1s both',
         }}
       >
         <h1
           style={{
             fontFamily: 'var(--font-title)',
-            fontSize: '1.6rem',
+            fontSize: '1.4rem',
             fontWeight: 800,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
             color: 'var(--color-white)',
-            marginBottom: '1rem',
+            marginBottom: '1.2rem',
             lineHeight: 1.25,
           }}
         >
-          Diagnóstico Concluído
+          Análise em Andamento
         </h1>
 
         <div
@@ -90,56 +165,50 @@ export const Processing: React.FC = () => {
         />
 
         <p
+          role="status"
+          aria-live="assertive"
           style={{
             fontFamily: 'var(--font-body)',
-            fontSize: '0.95rem',
-            lineHeight: 1.65,
+            fontSize: '1.05rem',
+            fontWeight: 600,
+            lineHeight: 1.6,
             color: 'var(--color-silver-light)',
-            marginBottom: '2rem',
+            margin: 0,
+            height: '2.5em',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          Suas respostas foram registradas com sucesso.
-          <br />
-          A análise do resultado será implementada em uma próxima etapa.
+          {stage.message}
         </p>
 
-        {/* Botão voltar */}
-        <button
-          id="btn-voltar-inicio"
-          onClick={handleGoHome}
+        {/* Barra de progresso visual simulada */}
+        <div
           style={{
-            fontFamily: 'var(--font-title)',
-            fontSize: '0.82rem',
-            fontWeight: 800,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            padding: '0.85rem 2rem',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            border: '1px solid rgba(192,200,216,0.25)',
-            background: 'linear-gradient(135deg, var(--color-blue-highlight) 0%, #0f2f6e 100%)',
-            color: 'var(--color-white)',
-            boxShadow: '0 4px 16px rgba(18,61,132,0.35)',
-            transition: 'all 0.25s ease',
             width: '100%',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 6px 24px rgba(18,61,132,0.5)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(18,61,132,0.35)';
+            height: '4px',
+            backgroundColor: 'rgba(3, 13, 36, 0.6)',
+            borderRadius: '2px',
+            marginTop: '1.5rem',
+            overflow: 'hidden',
           }}
         >
-          Voltar à Página Inicial
-        </button>
+          <div
+            style={{
+              width: `${((currentStage + 1) / STAGES.length) * 100}%`,
+              height: '100%',
+              backgroundColor: 'var(--color-success)',
+              borderRadius: '2px',
+              transition: 'width 0.5s ease',
+            }}
+          />
+        </div>
       </div>
 
-      {/* Nota de rodapé */}
       <p
         style={{
-          marginTop: '1.5rem',
+          marginTop: '2rem',
           fontSize: '0.72rem',
           color: 'var(--color-silver-dark)',
           textAlign: 'center',
@@ -147,8 +216,7 @@ export const Processing: React.FC = () => {
           lineHeight: 1.5,
         }}
       >
-        Este diagnóstico é um instrumento educacional da Academia da Roleta.
-        Não envolve apostas ou valores financeiros.
+        Aguarde. O algoritmo do Método C.G.E. está tabulando sua pontuação.
       </p>
     </div>
   );

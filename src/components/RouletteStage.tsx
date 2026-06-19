@@ -65,6 +65,7 @@ interface RouletteStageProps {
   savedSpinData: RoundSpinData | null;
   isAnswerConfirmed: boolean;
   onSpinComplete: (result: SpinResult) => void;
+  buttonLabel?: string;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export const RouletteStage: React.FC<RouletteStageProps> = ({
   savedSpinData,
   isAnswerConfirmed,
   onSpinComplete,
+  buttonLabel,
 }) => {
   const {
     wheelAngle,
@@ -358,6 +360,7 @@ export const RouletteStage: React.FC<RouletteStageProps> = ({
         audioEnabled={audioEnabled}
         onSpin={handleSpin}
         onAudioToggle={handleAudioToggle}
+        buttonLabel={buttonLabel}
       />
     </div>
   );
