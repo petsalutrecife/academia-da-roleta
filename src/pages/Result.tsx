@@ -9,7 +9,7 @@ import { StrengthCard } from '../components/StrengthCard';
 import { AttentionCard } from '../components/AttentionCard';
 import { RecommendationList } from '../components/RecommendationList';
 import { EvolutionPlan } from '../components/EvolutionPlan';
-import { AnswerReviewAccordion } from '../components/AnswerReviewAccordion';
+
 import { MethodCGECard } from '../components/MethodCGECard';
 import { ResultActions } from '../components/ResultActions';
 import { ShareResultCard } from '../components/ShareResultCard';
@@ -271,7 +271,6 @@ export const Result: React.FC = () => {
 
       <RecommendationList items={recommendations} />
       <EvolutionPlan steps={evolutionSteps} />
-      <AnswerReviewAccordion items={data.answers} />
       <MethodCGECard />
 
       <div style={{ textAlign: 'center', margin: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
