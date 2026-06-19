@@ -1,7 +1,7 @@
 // src/components/ResultActions.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, BookOpen, RotateCcw } from 'lucide-react';
+import { BookOpen, RotateCcw } from 'lucide-react';
 import { resultActionsConfig } from '../config/resultActionsConfig';
 
 export const ResultActions: React.FC = () => {
@@ -30,24 +30,28 @@ export const ResultActions: React.FC = () => {
         marginTop: '2rem',
         marginBottom: '2rem',
         animation: 'slideUp 0.6s ease forwards',
+        width: '100%',
+        alignItems: 'center',
       }}
     >
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          width: '100%',
+          maxWidth: '500px',
+          display: 'flex',
+          flexDirection: 'column',
           gap: '1rem',
         }}
       >
-        {/* Falar com a Mentora */}
+        {/* Conhecer Método C.G.E. */}
         <button
-          onClick={() => handleAction(resultActionsConfig.mentorWhatsappUrl, 'Falar com Mentora')}
+          onClick={() => handleAction(resultActionsConfig.methodUrl, 'Conhecer Método C.G.E.')}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.75rem',
-            background: 'var(--color-primary)',
+            background: 'linear-gradient(135deg, var(--color-blue-highlight) 0%, #0a2863 100%)',
             color: 'var(--color-white)',
             border: 'none',
             borderRadius: '12px',
@@ -58,76 +62,48 @@ export const ResultActions: React.FC = () => {
             cursor: 'pointer',
             boxShadow: '0 4px 14px rgba(18, 61, 132, 0.4)',
             transition: 'transform 0.2s ease, filter 0.2s ease',
+            width: '100%',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
           onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
         >
-          <MessageSquare size={20} />
-          Falar com a Mentora
+          <BookOpen size={20} />
+          Conhecer Método C.G.E.
         </button>
 
-        {/* Conhecer Método C.G.E. */}
+        {/* Refazer o Diagnóstico */}
         <button
-          onClick={() => handleAction(resultActionsConfig.methodUrl, 'Conhecer Método C.G.E.')}
+          onClick={handleRestart}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.75rem',
-            background: 'rgba(182, 187, 198, 0.1)',
-            color: 'var(--color-white)',
-            border: '1px solid rgba(182, 187, 198, 0.25)',
+            gap: '0.5rem',
+            background: 'transparent',
+            color: 'var(--color-silver-medium)',
+            border: '1px dashed rgba(182, 187, 198, 0.3)',
             borderRadius: '12px',
-            padding: '1rem',
+            padding: '0.75rem',
             fontFamily: 'var(--font-title)',
-            fontWeight: 700,
-            fontSize: '1rem',
+            fontWeight: 600,
+            fontSize: '0.9rem',
             cursor: 'pointer',
-            transition: 'background 0.2s ease, transform 0.2s ease',
+            transition: 'all 0.2s ease',
+            width: '100%',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(182, 187, 198, 0.15)';
+            e.currentTarget.style.color = '#FFF';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(182, 187, 198, 0.1)';
+            e.currentTarget.style.color = 'var(--color-silver-medium)';
+            e.currentTarget.style.borderColor = 'rgba(182, 187, 198, 0.3)';
           }}
         >
-          <BookOpen size={20} />
-          Conhecer Método C.G.E.
+          <RotateCcw size={16} />
+          Refazer Diagnóstico
         </button>
       </div>
-
-      {/* Refazer o Diagnóstico */}
-      <button
-        onClick={handleRestart}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-          background: 'transparent',
-          color: 'var(--color-silver-medium)',
-          border: '1px dashed rgba(182, 187, 198, 0.3)',
-          borderRadius: '12px',
-          padding: '0.75rem',
-          fontFamily: 'var(--font-title)',
-          fontWeight: 600,
-          fontSize: '0.9rem',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = '#FFF';
-          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--color-silver-medium)';
-          e.currentTarget.style.borderColor = 'rgba(182, 187, 198, 0.3)';
-        }}
-      >
-        <RotateCcw size={16} />
-        Refazer Diagnóstico
-      </button>
     </div>
   );
 };
