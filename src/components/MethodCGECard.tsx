@@ -61,20 +61,20 @@ export const MethodCGECard: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Brain size={20} style={{ color: 'var(--color-silver-medium)' }} />
             <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--color-white)', fontWeight: 600 }}>
-              C <span style={{ color: 'var(--color-silver-medium)', fontWeight: 400 }}>- Emocional</span>
+              C <span style={{ color: 'var(--color-silver-medium)', fontWeight: 400 }}>- Controle Emocional</span>
             </h4>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-silver-dark)', lineHeight: '1.4' }}>
             Disciplina para lidar com as vitórias e perdas, evitando comportamentos de risco e impulsos como o "Tilt".
           </p>
         </div>
-
+ 
         {/* G - Gestão Financeira */}
         <div style={{ background: 'rgba(255, 255, 255, 0.01)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.03)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Wallet size={20} style={{ color: 'var(--color-silver-medium)' }} />
             <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--color-white)', fontWeight: 600 }}>
-              G <span style={{ color: 'var(--color-silver-medium)', fontWeight: 400 }}>- Gestão</span>
+              G <span style={{ color: 'var(--color-silver-medium)', fontWeight: 400 }}>- Gestão Financeira</span>
             </h4>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-silver-dark)', lineHeight: '1.4' }}>
