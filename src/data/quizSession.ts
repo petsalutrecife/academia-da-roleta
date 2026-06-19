@@ -5,6 +5,7 @@
  */
 
 import type { OptionId } from './quizData';
+import { supabase } from '../utils/supabaseClient';
 
 export interface QuizAnswer {
   questionId: string; // e.g. "ce-01"
@@ -59,8 +60,73 @@ export function generateAttemptId(): string {
 export function saveAttempt(attempt: QuizAttempt): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(attempt));
+    // Sincroniza em background com Supabase
+    syncAttemptToSupabase(attempt).catch((err) => {
+      console.error('[quizSession] Sincronização falhou:', err);
+    });
   } catch (e) {
     console.error('[quizSession] Erro ao salvar progresso:', e);
+  }
+}
+
+export async function syncAttemptToSupabase(attempt: QuizAttempt): Promise<void> {
+  try {
+    // 1. Upsert aluno
+    if (attempt.student) {
+      await supabase.from('students').upsert(
+        {
+          name: attempt.student.name,
+          email: attempt.student.email,
+          phone: attempt.student.phone,
+          consent: attempt.student.consent,
+        },
+        { onConflict: 'email' }
+      );
+    }
+
+    // 2. Upsert tentativa
+    await supabase.from('quiz_attempts').upsert({
+      id: attempt.attemptId,
+      student_email: attempt.student?.email || '',
+      current_module_index: attempt.currentModuleIndex,
+      current_question_index: attempt.currentQuestionIndex,
+      round_state: attempt.roundState,
+      started_at: attempt.startedAt,
+      completed_at: attempt.completedAt,
+      status: attempt.status,
+    });
+
+    // 3. Sincronizar giros da roleta (delete-then-insert)
+    await supabase.from('module_spins').delete().eq('attempt_id', attempt.attemptId);
+    if (attempt.moduleSpins && attempt.moduleSpins.length > 0) {
+      const spinsData = attempt.moduleSpins.map((spin) => ({
+        attempt_id: attempt.attemptId,
+        module_id: spin.moduleId,
+        roulette_number: spin.rouletteNumber,
+        roulette_color: spin.rouletteColor,
+        final_wheel_angle: spin.finalWheelAngle,
+        spun_at: spin.spunAt,
+      }));
+      await supabase.from('module_spins').insert(spinsData);
+    }
+
+    // 4. Sincronizar respostas (delete-then-insert)
+    await supabase.from('quiz_answers').delete().eq('attempt_id', attempt.attemptId);
+    if (attempt.answers && attempt.answers.length > 0) {
+      const answersData = attempt.answers.map((ans) => ({
+        attempt_id: attempt.attemptId,
+        question_id: ans.questionId,
+        selected_option: ans.selectedOption,
+        answered_at: ans.answeredAt,
+        roulette_number: ans.rouletteNumber,
+        roulette_color: ans.rouletteColor,
+        pillar: ans.pillar,
+        is_correct: ans.isCorrect,
+      }));
+      await supabase.from('quiz_answers').insert(answersData);
+    }
+  } catch (err) {
+    console.error('[quizSession] Erro ao sincronizar com Supabase:', err);
   }
 }
 
