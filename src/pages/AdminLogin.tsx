@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { FormField } from '../components/FormField';
 import { ContentCard } from '../components/ContentCard';
-import { InfoBanner } from '../components/InfoBanner';
 import { ShieldCheck } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
@@ -16,12 +15,13 @@ export const AdminLogin: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    // Demo credentials
-    if (email === 'admin@academiaroleta.com' && password === 'admin123') {
+    const savedPassword = localStorage.getItem('admin_password') || 'admin123';
+
+    if (email === 'admin@academiaroleta.com' && password === savedPassword) {
       localStorage.setItem('admin_auth', 'true');
       navigate('/admin/painel');
     } else {
-      setError('Credenciais incorretas. Use o aviso abaixo para testar.');
+      setError('Credenciais incorretas. Verifique seu e-mail e senha.');
     }
   };
 
@@ -79,13 +79,6 @@ export const AdminLogin: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={error}
-          />
-
-          <InfoBanner
-            type="info"
-            title="CREDENCIAIS DE TESTE"
-            message="E-mail: admin@academiaroleta.com | Senha: admin123"
-            style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}
           />
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

@@ -5,10 +5,12 @@ import { ContentCard } from '../components/ContentCard';
 import { ToastMessage } from '../components/ToastMessage';
 import { InfoBanner } from '../components/InfoBanner';
 import { FormField } from '../components/FormField';
-import { LogOut, FileSpreadsheet, Filter, ShieldAlert, Target, Users } from 'lucide-react';
+import { Modal } from '../components/Modal';
+import { LogOut, FileSpreadsheet, Filter, ShieldAlert, Target, Users, Key } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
 
 interface StudentData {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   phone: string;
@@ -29,40 +31,113 @@ const initialMockStudents: StudentData[] = [
 
 export const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
-  const [students, setStudents] = useState<StudentData[]>(initialMockStudents);
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [toastMsg, setToastMsg] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  // Password change states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Fetch completed attempts
+      const { data: attempts, error: attemptsError } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      if (attemptsError) throw attemptsError;
+
+      // 2. Fetch student details
+      const { data: studentsList, error: studentsError } = await supabase
+        .from('students')
+        .select('*');
+
+      if (studentsError) throw studentsError;
+
+      // 3. Fetch all answers
+      const { data: answers, error: answersError } = await supabase
+        .from('quiz_answers')
+        .select('*');
+
+      if (answersError) throw answersError;
+
+      // 4. Group and compute
+      const formatted: StudentData[] = (attempts || []).map((attempt, index) => {
+        const student = (studentsList || []).find(
+          (s) => s.email.toLowerCase() === attempt.student_email.toLowerCase()
+        );
+
+        const attemptAnswers = (answers || []).filter(
+          (ans) => ans.attempt_id === attempt.id
+        );
+
+        const emoAnswers = attemptAnswers.filter((a) => a.pillar === 'Controle Emocional');
+        const finAnswers = attemptAnswers.filter((a) => a.pillar === 'Gestão Financeira');
+        const estAnswers = attemptAnswers.filter((a) => a.pillar === 'Estratégia');
+
+        const emoCorrect = emoAnswers.filter((a) => a.is_correct).length;
+        const finCorrect = finAnswers.filter((a) => a.is_correct).length;
+        const estCorrect = estAnswers.filter((a) => a.is_correct).length;
+
+        const emoTotal = emoAnswers.length || 10;
+        const finTotal = finAnswers.length || 10;
+        const estTotal = estAnswers.length || 10;
+
+        const emoScore = Math.round((emoCorrect / emoTotal) * 100);
+        const finScore = Math.round((finCorrect / finTotal) * 100);
+        const estScore = Math.round((estCorrect / estTotal) * 100);
+
+        const formattedDate = attempt.completed_at
+          ? new Date(attempt.completed_at).toLocaleDateString('pt-BR')
+          : 'N/A';
+
+        return {
+          id: attempt.id || index,
+          name: student ? student.name : 'Aluno Desconhecido',
+          email: attempt.student_email,
+          phone: student ? student.phone : 'N/A',
+          date: formattedDate,
+          emo: emoScore,
+          fin: finScore,
+          est: estScore,
+          avg: attempt.percentage ?? 0,
+        };
+      });
+
+      setStudents(formatted);
+    } catch (e) {
+      console.error('Erro ao buscar dados do Supabase:', e);
+      // Fallback to localStorage or mock if query failed
+      const dbStudentsRaw = localStorage.getItem('admin_students_list');
+      if (dbStudentsRaw) {
+        setStudents(JSON.parse(dbStudentsRaw));
+      } else {
+        setStudents(initialMockStudents);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check auth
     const auth = localStorage.getItem('admin_auth');
     if (!auth) {
       navigate('/admin/login');
+      return;
     }
 
-    // Load from localStorage mock database
-    const dbStudentsRaw = localStorage.getItem('admin_students_list');
-    if (dbStudentsRaw) {
-      try {
-        const parsed = JSON.parse(dbStudentsRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setStudents(parsed);
-        } else {
-          // Initialize with default mock students
-          localStorage.setItem('admin_students_list', JSON.stringify(initialMockStudents));
-          setStudents(initialMockStudents);
-        }
-      } catch (e) {
-        console.error('Erro ao ler base de alunos. Resetando para mocks.', e);
-        localStorage.setItem('admin_students_list', JSON.stringify(initialMockStudents));
-        setStudents(initialMockStudents);
-      }
-    } else {
-      // Initialize with default mock students if not created yet
-      localStorage.setItem('admin_students_list', JSON.stringify(initialMockStudents));
-      setStudents(initialMockStudents);
-    }
+    fetchStudents();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -123,6 +198,38 @@ export const AdminPanel: React.FC = () => {
     }, 800);
   };
 
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    const savedPassword = localStorage.getItem('admin_password') || 'admin123';
+
+    if (currentPassword !== savedPassword) {
+      setPasswordError('A senha atual está incorreta.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('A nova senha deve conter pelo menos 6 caracteres.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('As senhas não coincidem.');
+      return;
+    }
+
+    localStorage.setItem('admin_password', newPassword);
+    setToastMsg('Senha alterada com sucesso!');
+    setShowToast(true);
+    
+    // Clear inputs and close modal
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordModal(false);
+  };
+
   const filteredStudents = students.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -167,7 +274,11 @@ export const AdminPanel: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => setShowPasswordModal(true)}>
+            <Key size={16} />
+            <span>Alterar Senha</span>
+          </Button>
           <Button variant="secondary" onClick={handleExportCSV}>
             <FileSpreadsheet size={16} />
             <span>Exportar CSV</span>
@@ -272,7 +383,13 @@ export const AdminPanel: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-silver-medium)', fontSize: '0.95rem' }}>
+                  Carregando cadastros do Supabase...
+                </td>
+              </tr>
+            ) : filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
                 <tr
                   key={student.id}
@@ -326,6 +443,69 @@ export const AdminPanel: React.FC = () => {
           onClose={() => setShowToast(false)}
         />
       )}
+
+      {/* Modal: Alterar Senha Admin */}
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => {
+          setShowPasswordModal(false);
+          setPasswordError('');
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        }}
+        title="Alterar Senha do Administrador"
+        size="sm"
+      >
+        <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0.2rem' }}>
+          <FormField
+            label="Senha Atual"
+            id="current-password"
+            type="password"
+            placeholder="Digite a senha atual"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+
+          <FormField
+            label="Nova Senha"
+            id="new-password"
+            type="password"
+            placeholder="Mínimo 6 caracteres"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+
+          <FormField
+            label="Confirmar Nova Senha"
+            id="confirm-password"
+            type="password"
+            placeholder="Digite a nova senha novamente"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={passwordError}
+          />
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                setShowPasswordModal(false);
+                setPasswordError('');
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button variant="primary" type="submit">
+              Salvar Nova Senha
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
