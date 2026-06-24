@@ -1,7 +1,7 @@
 // src/components/ResultActions.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, RotateCcw } from 'lucide-react';
+import { BookOpen, RotateCcw, Users, FileText } from 'lucide-react';
 import { resultActionsConfig } from '../config/resultActionsConfig';
 
 export const ResultActions: React.FC = () => {
@@ -43,9 +43,37 @@ export const ResultActions: React.FC = () => {
           gap: '1rem',
         }}
       >
-        {/* Conhecer Método C.G.E. */}
+        {/* Entrar no Grupo de Alunos */}
         <button
-          onClick={() => handleAction(resultActionsConfig.methodUrl, 'Conhecer Método C.G.E.')}
+          onClick={() => handleAction(resultActionsConfig.whatsappGroupUrl, 'Entrar no Grupo Oficial')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', // Vibrant green gradient for WhatsApp/Group
+            color: 'var(--color-white)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '1rem',
+            fontFamily: 'var(--font-title)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+            transition: 'transform 0.2s ease, filter 0.2s ease',
+            width: '100%',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
+          onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
+        >
+          <Users size={20} />
+          Entrar no Grupo Oficial de Alunos
+        </button>
+
+        {/* Visualizar Relatório Completo */}
+        <button
+          onClick={() => navigate('/relatorio')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -61,6 +89,33 @@ export const ResultActions: React.FC = () => {
             fontSize: '1rem',
             cursor: 'pointer',
             boxShadow: '0 4px 14px rgba(18, 61, 132, 0.4)',
+            transition: 'transform 0.2s ease, filter 0.2s ease',
+            width: '100%',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
+          onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
+        >
+          <FileText size={20} />
+          Visualizar Relatório Detalhado (PDF / E-mail)
+        </button>
+
+        {/* Conhecer Método C.G.E. */}
+        <button
+          onClick={() => handleAction(resultActionsConfig.methodUrl, 'Conhecer Método C.G.E.')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            background: 'rgba(18, 61, 132, 0.2)',
+            color: 'var(--color-white)',
+            border: '1px solid rgba(18, 61, 132, 0.4)',
+            borderRadius: '12px',
+            padding: '1rem',
+            fontFamily: 'var(--font-title)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
             transition: 'transform 0.2s ease, filter 0.2s ease',
             width: '100%',
           }}
