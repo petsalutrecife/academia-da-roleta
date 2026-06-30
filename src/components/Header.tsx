@@ -1,12 +1,8 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Header: React.FC = () => {
-  const location = useLocation();
-  const isAdminPage = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard');
-
   return (
     <header
       style={{
@@ -52,39 +48,6 @@ export const Header: React.FC = () => {
         >
           Diagnóstico C.G.E.
         </span>
-
-        {/* Minimalist link for testing/admin */}
-        {!isAdminPage && (
-          <Link
-            to="/admin/login"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: 'var(--color-silver-medium)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              textDecoration: 'none',
-              padding: '0.4rem 0.8rem',
-              borderRadius: '6px',
-              border: '1px solid rgba(182, 187, 198, 0.15)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.color = 'var(--color-white)';
-              e.currentTarget.style.borderColor = 'rgba(182, 187, 198, 0.35)';
-              e.currentTarget.style.backgroundColor = 'rgba(18, 61, 132, 0.2)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.color = 'var(--color-silver-medium)';
-              e.currentTarget.style.borderColor = 'rgba(182, 187, 198, 0.15)';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <LayoutDashboard size={14} />
-            <span>Área Administrativa</span>
-          </Link>
-        )}
       </div>
     </header>
   );

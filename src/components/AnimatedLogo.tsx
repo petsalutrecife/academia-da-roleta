@@ -39,13 +39,11 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
   // Animation inline style if animating
   const spinStyle: React.CSSProperties = showAnimation
     ? {
-        animationName: 'rouletteSpin',
         animationDuration: `${spinDuration}s`,
-        animationTimingFunction: 'linear',
-        animationIterationCount: 'infinite',
-        willChange: 'transform',
       }
-    : {};
+    : {
+        animationName: 'none',
+      };
 
   return (
     <div

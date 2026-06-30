@@ -211,6 +211,13 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.animated-logo-wheel {
+  animation-name: rouletteSpin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
 /* Default Logo Sizing (Desktop/Tablet/Mobile Responsive breakpoints) */
 .animated-logo-container {
   width: 230px; /* Desktop width range: 210px - 240px */

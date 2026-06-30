@@ -447,7 +447,7 @@ export const Instructions: React.FC = () => {
               <div>• Cada módulo possui <span style={{ color: 'var(--color-white)' }}>10 pontos possíveis</span></div>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--color-silver-medium)', margin: 0, lineHeight: 1.5 }}>
-              “O resultado final será calculated com base na quantidade total de acertos e também no desempenho em cada módulo.”
+              “O resultado final será calculado com base na quantidade total de acertos e também no desempenho em cada módulo.”
             </p>
             
             {/* Exemplo demonstrativo */}
